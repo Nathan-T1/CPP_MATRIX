@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:/Users/bktor/AppData/Local/Programs/Python/Python37-32/include"
+                "C:/Users/bktor/AppData/Local/Programs/Python/Python38/Lib/site-packages/numpy/core/include",
+                "C:/Users/bktor/AppData/Local/Programs/Python/Python38/include"
             ],
             "defines": [
                 "_DEBUG",

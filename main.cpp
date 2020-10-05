@@ -2,19 +2,104 @@
 //git commit -m "Changes"
 //git push origin master
 
+//https://gist.github.com/dfm/3247796
+
 #include <iostream>
 #include <Python.h>
 #include <string.h>
+#include <numpy/arrayobject.h>
+#include <math.h>
 
-
-static PyObject* func(PyObject* self)
+void print_array(double *array, int N, int M)
 {
-    return Py_BuildValue("s", "Hello from c++");
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < M; j++)
+        {
+            std::cout << array[i * M + j];
+            std::cout << " ";
+        }
+        std::cout << "\n";
+    }
+}
+
+void mat_mul(double *ret_array, double *array_a, int N_a, int M_a, double *array_b, int N_b, int M_b)
+{
+
+    //M_a = N_b
+
+    
+}
+
+
+static PyObject* func(PyObject* self, PyObject* args)
+{
+    PyObject *array_obj_a, *array_obj_b;
+
+    if (!PyArg_ParseTuple(args, "OO", &array_obj_a, &array_obj_b))
+    {
+        return NULL;
+    }
+
+    PyObject *array_a = PyArray_FROM_OTF(array_obj_a, NPY_DOUBLE, NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
+    PyObject *array_b = PyArray_FROM_OTF(array_obj_b, NPY_DOUBLE, NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
+
+    if (array_a == NULL || array_b == NULL)
+    {
+        Py_XDECREF(array_a);
+        Py_XDECREF(array_b);
+
+        return NULL;
+    }
+
+    //Get number of dimensions
+    //int dims_a = (int)PyArray_NDIM(array_a);
+    //int dims_b = (int)PyArray_NDIM(array_b);
+
+    
+    int N_a = (int)PyArray_DIM(array_a, 0);
+    int M_a = (int)PyArray_DIM(array_a, 1); 
+    int N_b = (int)PyArray_DIM(array_b, 0);
+    int M_b = (int)PyArray_DIM(array_b, 1); 
+    
+    double *array_pointer_a = (double*)PyArray_DATA(array_a);
+    double *array_pointer_b = (double*)PyArray_DATA(array_b);
+    double *ret_array{new double[N_a * M_b]};
+    
+
+    for(int i = 0; i < N_a; i++)
+    {
+        for(int j = 0; j < M_b; j++)
+        {
+            for(int k = 0; k < N_a; k++)
+            {
+                ret_array[i*M_b+j] += array_pointer_a[i*M_a+k] * array_pointer_b[k*M_b + j];
+            }
+
+        }
+    }
+
+    npy_intp dims[2]{N_a, M_b};
+    PyObject *pArray = PyArray_SimpleNewFromData(
+        2, dims , NPY_LONGDOUBLE, reinterpret_cast<void*>(ret_array));
+
+    if (!pArray)
+        goto fail_np_array;
+
+    
+    Py_DecRef(array_a);
+    Py_DecRef(array_b);
+
+    return pArray;
+
+fail_np_array:
+    delete[] ret_array, array_pointer_a, array_pointer_b;
+
 }
 
 static PyMethodDef module_methods[] = 
 {
-    {"func", (PyCFunction)func, METH_NOARGS, NULL},
+    {"func", (PyCFunction)func, METH_VARARGS, NULL},
     {NULL}
 };
 
@@ -31,7 +116,9 @@ static struct PyModuleDef test_module =
 //Initialization Function
 PyMODINIT_FUNC PyInit_test(void)
 {
-   return PyModule_Create(&test_module);
+
+    import_array();
+    return PyModule_Create(&test_module);
 
     //return PyModule_Create(&test_module);
 }
