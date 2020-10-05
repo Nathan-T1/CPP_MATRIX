@@ -1,3 +1,7 @@
+//git add -A
+//git commit -m "Changes"
+//git push origin master
+
 #include <iostream>
 #include <Python.h>
 #include <string.h>
