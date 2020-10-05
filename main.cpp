@@ -1,6 +1,3 @@
-//g++ -c main.cpp
-//g++ -shared -o main.dll main.o
-
 #include <iostream>
 #include <Python.h>
 #include <string.h>
