@@ -10,7 +10,7 @@
 #include <numpy/arrayobject.h>
 #include <math.h>
 
-void print_array(double *array, int N, int M)
+void print_array(float  *array, int N, int M)
 {
     for (int i = 0; i < N; i++)
     {
@@ -23,7 +23,7 @@ void print_array(double *array, int N, int M)
     }
 }
 
-void mat_mul(double *ret_array, double *array_a, int N_a, int M_a, double *array_b, int N_b, int M_b)
+void mat_mul(float  *ret_array, float  *array_a, int N_a, int M_a, float  *array_b, int N_b, int M_b)
 {
 
     //M_a = N_b
@@ -41,8 +41,8 @@ static PyObject* func(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    PyObject *array_a = PyArray_FROM_OTF(array_obj_a, NPY_DOUBLE, NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
-    PyObject *array_b = PyArray_FROM_OTF(array_obj_b, NPY_DOUBLE, NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
+    PyObject *array_a = PyArray_FROM_OTF(array_obj_a, NPY_FLOAT32 , NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
+    PyObject *array_b = PyArray_FROM_OTF(array_obj_b, NPY_FLOAT32 , NPY_IN_ARRAY, NPY_ARRAY_C_CONTIGUOUS);
 
     if (array_a == NULL || array_b == NULL)
     {
@@ -62,18 +62,23 @@ static PyObject* func(PyObject* self, PyObject* args)
     int N_b = (int)PyArray_DIM(array_b, 0);
     int M_b = (int)PyArray_DIM(array_b, 1); 
     
-    double *array_pointer_a = (double*)PyArray_DATA(array_a);
-    double *array_pointer_b = (double*)PyArray_DATA(array_b);
-    double *ret_array{new double[N_a * M_b]};
+    float  *array_pointer_a = (float *)PyArray_DATA(array_a);
+    float  *array_pointer_b = (float *)PyArray_DATA(array_b);
+    float  *ret_array{new float [N_a * M_b]};
     
-
+    #pragma omp parallel for 
     for(int i = 0; i < N_a; i++)
     {
-        for(int j = 0; j < M_b; j++)
+        for(int k = 0; k < N_a; k++)
         {
-            for(int k = 0; k < N_a; k++)
+            for(int j = 0; j < M_b; j++)
             {
-                ret_array[i*M_b+j] += array_pointer_a[i*M_a+k] * array_pointer_b[k*M_b + j];
+                const int temp1 = i * M_a;
+                const int temp2 = k * M_b;
+                const int A_index = temp1 + k;
+                const int B_index = temp2 + j;
+
+                ret_array[i*M_b+j] += array_pointer_a[A_index] * array_pointer_b[B_index];
             }
 
         }
@@ -81,7 +86,7 @@ static PyObject* func(PyObject* self, PyObject* args)
 
     npy_intp dims[2]{N_a, M_b};
     PyObject *pArray = PyArray_SimpleNewFromData(
-        2, dims , NPY_LONGDOUBLE, reinterpret_cast<void*>(ret_array));
+        2, dims , NPY_FLOAT32 , reinterpret_cast<void*>(ret_array));
 
     if (!pArray)
         goto fail_np_array;
